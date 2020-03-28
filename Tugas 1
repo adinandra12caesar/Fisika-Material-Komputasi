@@ -1,0 +1,148 @@
+import matplotlib.pyplot as plt
+import numpy as np
+from math import pi,sqrt,exp,sin,cos
+
+#Definisi Fungsi Respon dalam Domain Waktu
+def Gt(t,b,m,k):
+    Gt=1.0/m*exp(-b*t/(2.0*m))*sin(sqrt(4.0*m*k-b**2)*t/(2.0*m))
+    return Gt
+
+#Definisi Fungsi Respon Bagian Real dalam Domain Frekuensi
+def Gwr(w,b,m,k):
+    Gwr=1.0/m*(k/m-w**2)/((k/m-w**2)**2+(w*b/m)**2)
+    return Gwr
+
+#Definisi Fungsi Respon Bagian Imajiner dalam Domain Frekuensi
+def Gwi(w,b,m,k):
+    Gwi=1.0/m*(w*b/m)/((k/m-w**2)**2+(w*b/m)**2)
+    return Gwi
+
+#Definisi Discrete Fourier Transform Bagian Real
+def Dftr(w,t,dt,b,m,k):
+    Dftr=dt*Gt(t,b,m,k)*cos(w*t)
+    return Dftr
+
+#Definisi Discrete Fourier Transform Bagian Imajiner
+def Dfti(w,t,dt,b,m,k):
+    Dfti=dt*Gt(t,b,m,k)*sin(w*t)
+    return Dfti
+
+#Plot Grafik Fungsi Respon dalam Domain Waktu
+def plot_Gt(T,dt,b,m,k):
+    #Hasil Analitik
+    n=10000
+    ta=np.linspace(0,T,n)
+    ga=np.zeros(n)
+    for i in range(0,n,1):
+        t=ta[i]
+        ga[i]=Gt(t,b,m,k)
+    #Hasil Numerik
+    nt=int(T/dt)
+    tn=np.linspace(0,T,nt)
+    gn=np.zeros(nt)
+    for i in range(0,nt,1):
+        t=tn[i]
+        gn[i]=Gt(t,b,m,k)
+    plt.plot(ta,ga,label='Analitik')
+    plt.plot(tn,gn,label='Numerik')
+    plt.xlabel('Waktu (t)')
+    plt.ylabel('Fungsi Respon (G(t))')
+    plt.title('Fungsi Respon dalam Domain Waktu')
+    plt.legend()
+    plt.show()
+
+#Plot Grafik Fungsi Respon dalam Domain Frekuensi
+def plot_Gw(T,dt,b,m,k):
+    W=pi/(2.0*dt)
+    dw=pi/T
+    #Hasil Analitik
+    n=10000
+    wa=np.linspace(-W,W,n)
+    gar=np.zeros(n)
+    gai=np.zeros(n)
+    for i in range(0,n,1):
+        w=wa[i]
+        gar[i]=Gwr(w,b,m,k)
+        gai[i]=Gwi(w,b,m,k)
+    #Hasil Numerik
+    nw=int(2.0*W/dw)
+    wn=np.linspace(-W,W,nw)
+    gnr=np.zeros(nw)
+    gni=np.zeros(nw)
+    for i in range(0,nw,1):
+        w=wn[i]
+        gnr[i]=0
+        gni[i]=0
+        for t in np.arange(0.0,T,dt):
+            gnr[i]=gnr[i]+Dftr(w,t,dt,b,m,k)
+            gni[i]=gni[i]+Dfti(w,t,dt,b,m,k)
+    plt.plot(wa,gar,label='Analitik Bagian Real')
+    plt.plot(wa,gai,label='Analitik Bagian Imajiner')
+    plt.plot(wn,gnr,label='Numerik Bagian Real')
+    plt.plot(wn,gni,label='Numerik Bagian Imajiner')
+    plt.xlim((-10,10))
+    plt.xlabel('Frekuensi (w)')
+    plt.ylabel('Fungsi Respon (G(w))')
+    plt.title('Fungsi Respon dalam Domain Frekuensi')
+    plt.legend()
+    plt.show()
+
+#Plot Grafik Transformasi Kramers-Kronig Bagian Real ke Imajiner
+def plot_kkri(T,dt,b,m,k):
+    W=pi/(2.0*dt)
+    dw=pi/T
+    nw=int(2.0*W/dw)
+    wn=np.linspace(-W,W,nw)
+    gnr=np.zeros(nw)
+    gnri=np.zeros(nw)
+    for i in range(0,nw,1):
+        w=wn[i]
+        gnri[i]=0
+        for j in range(0,nw,1):
+            w=wn[j]
+            gnr[j]=0
+            for t in np.arange(0.0,T,dt):
+                gnr[j]=gnr[j]+Dftr(w,t,dt,b,m,k)
+            #Transformasi Kramers-Kronig Bagian Real ke Imajiner
+            if wn[j]==wn[i]:    #Definisi Cauchy Principle Value
+                gnri[i]=gnri[i]+0.0
+            else:
+                gnri[i]=gnri[i]-1.0/pi*dw*gnr[j]/(wn[j]-wn[i])
+    plt.plot(wn,gnr,label='Numerik Bagian Real')
+    plt.plot(wn,gnri,label='Kramers-Kronig Bagian Real')
+    plt.xlim((-10,10))
+    plt.xlabel('Frekuensi (w)')
+    plt.ylabel('Fungsi Respon (G(w))')
+    plt.title('Fungsi Respon dalam Domain Frekuensi')
+    plt.legend()
+    plt.show()
+
+#Plot Grafik Transformasi Kramers-Kronig Bagian Imajiner ke Real
+def plot_kkir(T,dt,b,m,k):
+    W=pi/(2.0*dt)
+    dw=pi/T
+    nw=int(2.0*W/dw)
+    wn=np.linspace(-W,W,nw)
+    gni=np.zeros(nw)
+    gnir=np.zeros(nw)
+    for i in range(0,nw,1):
+        w=wn[i]
+        gnir[i]=0
+        for j in range(0,nw,1):
+            w=wn[j]
+            gni[j]=0
+            for t in np.arange(0.0,T,dt):
+                gni[j]=gni[j]+Dfti(w,t,dt,b,m,k)
+            #Transformasi Kramers-Kronig Bagian Imajiner ke Real
+            if wn[j]==wn[i]:    #Definisi Cauchy Principle Value
+                gnir[i]=gnir[i]+0.0
+            else:
+                gnir[i]=gnir[i]+1.0/pi*dw*gni[j]/(wn[j]-wn[i])
+    plt.plot(wn,gni,label='Numerik Bagian Imajiner')
+    plt.plot(wn,gnir,label='Kramers-Kronig Bagian Imajiner')
+    plt.xlim((-10,10))
+    plt.xlabel('Frekuensi (w)')
+    plt.ylabel('Fungsi Respon (G(w))')
+    plt.title('Fungsi Respon dalam Domain Frekuensi')
+    plt.legend()
+    plt.show()
